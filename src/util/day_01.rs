@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let input = include_str!("../../input_01.txt");
+        let input = include_str!("../../input/input_01.txt");
 
         assert_eq!("69501", solve(input.to_string(), Part1));
     }
@@ -86,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        let input = include_str!("../../input_01.txt");
+        let input = include_str!("../../input/input_01.txt");
 
         assert_eq!("202346", solve(input.to_string(), Part2));
     }
