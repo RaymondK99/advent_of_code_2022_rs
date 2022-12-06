@@ -89,7 +89,7 @@ fn game_points(opponent:&Type, my_move:&Type) -> u32 {
     }
 }
 
-fn play(lines : Vec<&str>, parse_my_move: &dyn Fn(&Type, char) -> Type) -> String {
+fn play(lines : Vec<&str>, parse_my_move: fn(&Type, char) -> Type) -> String {
     lines.iter().map( |line| {
         let chars:Vec<char> = line.to_string().chars().collect();
         let opponent = parse_opponent_move(chars[0]);
@@ -99,11 +99,11 @@ fn play(lines : Vec<&str>, parse_my_move: &dyn Fn(&Type, char) -> Type) -> Strin
 }
 
 fn part1(lines : Vec<&str>) -> String {
-    play(lines, &parse_my_move_part1)
+    play(lines, parse_my_move_part1)
 }
 
 fn part2(lines : Vec<&str>) -> String {
-    play(lines, &parse_my_move_part2)
+    play(lines, parse_my_move_part2)
 }
 
 
