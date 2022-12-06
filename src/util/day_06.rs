@@ -8,16 +8,16 @@ pub fn solve(input : String, part: Part) -> String {
     }
 }
 
-fn find_marker(input : String, num_chars:usize) -> String {
+fn find_marker(input : String, market_size:usize) -> String {
     let buffer = input.as_bytes();
 
-    for i in 0..buffer.len() - num_chars {
-        let unique_symbols = buffer[i..(i+num_chars)].iter()
+    for i in 0..buffer.len() - market_size {
+        let unique_symbols = buffer[i..(i+ market_size)].iter()
             .fold(0 as u32, |acc,next| acc | (1 << (*next - 'a' as u8)))
             .count_ones();
 
-        if unique_symbols == num_chars as u32 {
-            return (i+num_chars).to_string()
+        if unique_symbols == market_size as u32 {
+            return (i+ market_size).to_string()
         }
     }
 
