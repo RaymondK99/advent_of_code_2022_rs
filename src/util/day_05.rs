@@ -50,13 +50,16 @@ fn parse_map(lines:&Vec<&str>) -> Vec<VecDeque<char>> {
 
 fn run_instructions(mut stacks:Vec<VecDeque<char>>, instructions:Vec<(usize,usize,usize)>, preserve_order:bool) -> String {
     for &(num, from, to) in instructions.iter() {
-        let mut items = (0..num).into_iter().map(|_| stacks.get_mut(from).unwrap().pop_back().unwrap()).collect::<Vec<_>>();
+        let mut items = (0..num).into_iter()
+            .map(|_| stacks.get_mut(from).unwrap().pop_back().unwrap())
+            .collect::<Vec<_>>();
 
         if preserve_order {
             items.reverse();
         }
 
-        items.into_iter().for_each(|item| stacks.get_mut(to).unwrap().push_back(item));
+        items.into_iter()
+            .for_each(|item| stacks.get_mut(to).unwrap().push_back(item));
     }
 
     stacks.iter().filter(|stack| !stack.is_empty())

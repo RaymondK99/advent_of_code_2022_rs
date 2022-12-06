@@ -19,7 +19,6 @@ fn part1(calories_each:Vec<u32>) -> String {
     calories_each.iter().max().unwrap().to_string()
 }
 
-
 fn part2(mut calories_each:Vec<u32>) -> String {
     calories_each.sort();
     calories_each.reverse();
