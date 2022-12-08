@@ -13,45 +13,42 @@ fn parse_file_tree(input:String) -> Vec<u32> {
     let mut stack:VecDeque<u32> = VecDeque::new();
     let mut dir_sizes = vec![];
 
-    while !lines.is_empty() {
-        let cmd = lines.pop_front().unwrap().split(' ').collect::<Vec<_>>();
+    while !stack.is_empty() || !lines.is_empty() {
 
-        if cmd[0].eq("$") && cmd[1].eq("cd") {
-            // Change of dir
-            let dir_name = cmd[2];
-            if dir_name.eq("..") {
-                // Pop current dir
-                let size = stack.pop_front().unwrap();
+        // Parse commands
+        while !lines.is_empty() {
+            let cmd = lines.pop_front().unwrap().split(' ').collect::<Vec<_>>();
 
-                // And add its' size to parent
-                *stack.front_mut().unwrap() += size;
-
-                // Add to result
-                dir_sizes.push(size);
-            } else {
-                // Add new sub dir
-                stack.push_front(0_u32);
-            }
-        } else if cmd[0].eq("$") && cmd[1].eq("ls") {
-            // List nodes in dir
-            while !lines.is_empty() && !lines.front().unwrap().starts_with("$") {
-                let node = lines.pop_front().unwrap().split(' ').collect::<Vec<_>>();
-                if node[0].ne("dir") {
-                    // File -> add size
-                    *stack.front_mut().unwrap() += node[0].parse::<u32>().unwrap();
+            if cmd[0].eq("$") && cmd[1].eq("cd") {
+                // Change of dir
+                if cmd[2].eq("..") {
+                    // Break loop and pop stack
+                    break;
+                } else {
+                    // Add new sub dir
+                    stack.push_front(0_u32);
+                }
+            } else if cmd[0].eq("$") && cmd[1].eq("ls") {
+                // List nodes in dir
+                while !lines.is_empty() && !lines.front().unwrap().starts_with("$") {
+                    let node = lines.pop_front().unwrap().split(' ').collect::<Vec<_>>();
+                    if node[0].ne("dir") {
+                        // File -> add size
+                        *stack.front_mut().unwrap() += node[0].parse::<u32>().unwrap();
+                    }
                 }
             }
         }
-    }
 
-    // Pop current dir and add its' size to parent until we reach the root
-    while !stack.is_empty() {
+        // Pop current dir
         let size = stack.pop_front().unwrap();
 
         if !stack.is_empty() {
+            // And add its' size to parent
             *stack.front_mut().unwrap() += size;
         }
 
+        // Add to result
         dir_sizes.push(size);
     }
 
