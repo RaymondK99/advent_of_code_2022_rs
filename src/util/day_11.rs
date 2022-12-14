@@ -74,9 +74,11 @@ impl Monkey {
 
         while self.items.len() > 0 {
             let item = self.items.pop_front().unwrap();
-            let mut next_value = self.operation.do_op(item) % divisor;
+            let mut next_value = self.operation.do_op(item);
             if !part_two {
                 next_value = next_value / 3;
+            } else {
+                next_value = next_value % divisor;
             }
 
             if next_value % self.test_divisor == 0 {
@@ -204,4 +206,16 @@ Monkey 3:
 
         assert_eq!("13606755504", solve(input.to_string(), Part2));
     }
+
+
+    #[test]
+    fn test_failing_data() {
+        let input = include_str!("../../input/input_11_failing.txt");
+
+        assert_eq!("55216", solve(input.to_string(), Part1));
+        assert_eq!("12848882750", solve(input.to_string(), Part2));
+    }
+
+
+
 }
