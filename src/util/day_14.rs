@@ -58,7 +58,7 @@ fn build_map(positions:Vec<Vec<(usize,usize)>>) -> ((usize, usize),Vec<Vec<char>
             if y0 > y1 {
                 swap(&mut y0, &mut y1);
             }
-            //println!("{},{} -> {},{}", x0,y0, x1, y1);
+
             for y in y0..=y1 {
                 for x in x0..=x1 {
                     //println!("{},{}",x,y);
@@ -67,7 +67,6 @@ fn build_map(positions:Vec<Vec<(usize,usize)>>) -> ((usize, usize),Vec<Vec<char>
             }
         }
     }
-
 
     ((500 - min_x + 1, 0), map)
 }
@@ -119,6 +118,16 @@ fn drop_sand(pos:(usize,usize), map:&mut Vec<Vec<char>>, part_two:bool) -> bool 
     }
 }
 
+fn print(map:&Vec<Vec<char>>) {
+    for y in 0..map.len() {
+        let line = map.get(y).unwrap();
+        for x in 0..line.len() {
+            print!("{}", line.get(x).unwrap());
+        }
+        println!();
+    }
+}
+
 fn get_pos(pos:(usize,usize), map:&Vec<Vec<char>> ) -> char {
     let (x,y) = pos;
     *map.get(y).unwrap().get(x).unwrap()
@@ -128,10 +137,11 @@ fn part1(input : String) -> String {
     let positions = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
     let (start_pos, mut map) = build_map(positions);
 
+    print(&map);
     while !drop_sand(start_pos, &mut map, false) {}
 
+    print(&map);
     map.iter().flat_map(|line| line.iter()).filter(|&ch| *ch == 'o').count().to_string()
-
 }
 
 fn part2(input : String) -> String {
