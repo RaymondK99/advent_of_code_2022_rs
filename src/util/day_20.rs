@@ -42,7 +42,7 @@ fn mix(times:usize, numbers:&mut VecDeque<(usize, i64)>) -> i64 {
             mix_seq_no(n, numbers);
         }
     }
-    
+
     let index_of_zero = get_index(0, &numbers);
     let index_1000th = (index_of_zero + 1000) % numbers.len();
     let index_2000th = (index_of_zero + 2000) % numbers.len();
@@ -133,6 +133,6 @@ mod tests {
     fn test_part2() {
         let input = include_str!("../../input/input_20.txt");
 
-        assert_eq!("1", solve(input.to_string(), Part2));
+        assert_eq!("4265712588168", solve(input.to_string(), Part2));
     }
 }
