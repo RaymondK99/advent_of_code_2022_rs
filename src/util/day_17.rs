@@ -235,16 +235,17 @@ fn part2(input : String) -> String {
         cycle_size = detect_cycle(&deltas);
     }
 
-    // Detect cycle
-    let cycle_size = detect_cycle(&deltas);
+    // Cycle detected
     let height_per_cycle = (deltas.len() - cycle_size - 1..deltas.len() - 1)
         .map(|index| *deltas.get(index).unwrap()).sum::<usize>();
-
-    let rocks_to_drop = 1000000000000 - num_rocks;
     let rocks_per_cycle = cycle_size * input_len;
+    let rocks_to_drop = 1000000000000 - num_rocks;
     let num_remaining_cycles = rocks_to_drop / rocks_per_cycle;
     let rest_rocks = rocks_to_drop % rocks_per_cycle;
 
+    println!("cycle size:{}", cycle_size);
+    println!("rocks per cycle:{}, height added per cycle:{}", rocks_per_cycle, height_per_cycle);
+    println!("rocks dropped so far:{}, remaining to drop:{}", num_rocks, rest_rocks);
 
     (height_per_cycle * num_remaining_cycles + map.run(rest_rocks)).to_string()
 }
