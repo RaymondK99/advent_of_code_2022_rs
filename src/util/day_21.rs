@@ -22,13 +22,25 @@ mod tests {
     use super::*;
     use util::Part::{Part1, Part2};
 
+    const TEST_INPUT:&str = "root: pppw + sjmn
+dbpl: 5
+cczh: sllz + lgvd
+zczc: 2
+ptdq: humn - dvpt
+dvpt: 3
+lfqf: 4
+humn: 5
+ljgn: 2
+sjmn: drzm * dbpl
+sllz: 4
+pppw: cczh / lfqf
+lgvd: ljgn * ptdq
+drzm: hmdt - zczc
+hmdt: 32";
 
     #[test]
     fn test1() {
-
-        let input = "";
-
-        assert_eq!("1", solve(input.to_string(), Part1));
+        assert_eq!("1", solve(TEST_INPUT.to_string(), Part1));
     }
 
     #[test]
@@ -40,10 +52,7 @@ mod tests {
 
     #[test]
     fn test2() {
-
-        let input = "";
-
-        assert_eq!("1", solve(input.to_string(), Part2));
+        assert_eq!("1", solve(TEST_INPUT.to_string(), Part2));
     }
 
     #[test]

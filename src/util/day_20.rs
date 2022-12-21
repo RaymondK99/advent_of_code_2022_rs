@@ -17,22 +17,12 @@ fn parse(input:String, key:i64) -> VecDeque<(usize,i64)>{
 
 fn forward(mut n:i64, numbers:&mut VecDeque<(usize,i64)>) {
     n = n % numbers.len() as i64;
-
-    while n > 0 {
-        let front = numbers.pop_front().unwrap();
-        numbers.push_back(front);
-        n -= 1;
-    }
+    numbers.rotate_left(n as usize);
 }
 
 fn reverse(mut n:i64, numbers:&mut VecDeque<(usize,i64)>) {
     n = n % numbers.len() as i64;
-
-    while n > 0 {
-        let back = numbers.pop_back().unwrap();
-        numbers.push_front(back);
-        n -= 1;
-    }
+    numbers.rotate_right(n as usize);
 }
 
 fn mix(times:usize, numbers:&mut VecDeque<(usize, i64)>) -> i64 {
@@ -132,7 +122,6 @@ mod tests {
     #[test]
     fn test_part2() {
         let input = include_str!("../../input/input_20.txt");
-
         assert_eq!("4265712588168", solve(input.to_string(), Part2));
     }
 }
