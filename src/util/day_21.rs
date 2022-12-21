@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use super::Part;
 
 pub fn solve(input : String, part: Part) -> String {
@@ -8,16 +9,144 @@ pub fn solve(input : String, part: Part) -> String {
     }
 }
 
-fn part1(_input : String) -> String {
-    "1".to_string()
+#[derive(Debug)]
+struct Monkey {
+    name:String,
+    operation:Operation,
 }
 
-fn part2(_input : String) -> String {
-    "1".to_string()
+#[derive(Debug,  Clone)]
+enum Operation {
+    Number(i64),
+    Binary(Operand, String, String),
 }
+
+#[derive(Debug,  Copy, Clone)]
+enum Operand {
+    Plus,
+    Minus,
+    Mult,
+    Div,
+}
+
+fn parse(line:&str) -> Monkey {
+    let fields = line.split([':',' '])
+        .filter(|field| field.len() > 0)
+        .collect::<Vec<_>>();
+
+    if fields.len() == 2 {
+        let number = fields[1].parse::<i64>().unwrap();
+        let operation = Operation::Number(number);
+        Monkey{name:fields[0].to_string(),operation}
+    } else {
+        let name = fields[0].to_string();
+        let left = fields[1].to_string();
+        let op = fields[2];
+        let right = fields[3].to_string();
+
+        let operand = match op {
+            "+" => Operand::Plus,
+            "-" => Operand::Minus,
+            "*" => Operand::Mult,
+            "/" => Operand::Div,
+            &_ => {
+                panic!("..");
+            }
+        };
+        let operation = Operation::Binary(operand, left, right);
+        Monkey{name, operation}
+    }
+}
+
+fn contains_monkey(current:&String, search:&str, monkeys:&Vec<Monkey>) -> bool {
+    let monkey = monkeys.iter().find(|monkey| monkey.name.eq(current)).unwrap();
+    if monkey.name.as_str().eq(search) {
+        return true;
+    }
+
+    let operation = &monkey.operation;
+
+    match operation {
+        Operation::Number(_) => false,
+        Operation::Binary(_, left, right) => contains_monkey(left, search, monkeys) || contains_monkey(right, search, monkeys),
+    }
+}
+
+fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Operand, i64)>) -> Vec<(Operand, i64)> {
+    let monkey = monkeys.iter().find(|monkey| monkey.name.eq(current)).unwrap();
+
+    if monkey.name.as_str().eq(search) {
+        // Found leaf node
+        return path;
+    }
+
+    match &monkey.operation {
+        Operation::Number(_) => vec![],
+        Operation::Binary(operand, left, right) => {
+            let mut next_path = path.clone();
+            // Check which side contains the wanted monkey
+            if contains_monkey(left, search, monkeys) {
+                let right_value = resolve(right, monkeys);
+                next_path.push((*operand, right_value));
+                find_path(left, search, monkeys, next_path)
+            } else {
+                let left_value = resolve(left, monkeys);
+                next_path.push((*operand, left_value));
+                find_path(right, search, monkeys, next_path)
+            }
+        }
+    }
+}
+
+fn resolve(monkey_name:&str, monkeys:&Vec<Monkey>) -> i64 {
+    let monkey = monkeys.iter().find(|m| m.name.as_str().eq(monkey_name)).unwrap();
+
+    match &monkey.operation {
+        Operation::Number(number) => *number,
+        Operation::Binary(operand, left, right) => {
+            let left_value = resolve(left.as_str(), monkeys);
+            let right_value = resolve(right.as_str(), monkeys);
+
+            match operand {
+                Operand::Plus => left_value + right_value,
+                Operand::Minus => left_value - right_value,
+                Operand::Mult => left_value * right_value,
+                Operand::Div => left_value / right_value,
+            }
+        }
+    }
+}
+
+
+fn part1(input : String) -> String {
+    let monkeys = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
+    resolve("root", &monkeys).to_string()
+}
+
+fn part2(input : String) -> String {
+    let monkeys = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
+    let mut path = find_path("root", "humn", &monkeys, vec![]).iter().copied().collect::<VecDeque<_>>();
+
+    println!("path:{:?}", path);
+
+    let mut humn_value = path.pop_front().unwrap().1;
+    while !path.is_empty() {
+        let (operand, value) = path.pop_front().unwrap();
+        match operand {
+            Operand::Plus => humn_value -= value,
+            Operand::Minus => humn_value += value,
+            Operand::Mult => humn_value /= value,
+            Operand::Div => humn_value *= value,
+        }
+    }
+
+    humn_value.to_string()
+}
+
 
 #[cfg(test)]
 mod tests {
+    use std::assert_eq;
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
     use util::Part::{Part1, Part2};
@@ -40,25 +169,24 @@ hmdt: 32";
 
     #[test]
     fn test1() {
-        assert_eq!("1", solve(TEST_INPUT.to_string(), Part1));
+        assert_eq!("152", solve(TEST_INPUT.to_string(), Part1));
     }
 
     #[test]
     fn test_part1() {
         let input = include_str!("../../input/input_21.txt");
-
-        assert_eq!("1", solve(input.to_string(), Part1));
+        assert_eq!("85616733059734", solve(input.to_string(), Part1));
     }
 
     #[test]
     fn test2() {
-        assert_eq!("1", solve(TEST_INPUT.to_string(), Part2));
+        assert_eq!("301", solve(TEST_INPUT.to_string(), Part2));
     }
 
     #[test]
     fn test_part2() {
+        // Too high:7243227128687
         let input = include_str!("../../input/input_21.txt");
-
         assert_eq!("1", solve(input.to_string(), Part2));
     }
 }

@@ -185,7 +185,7 @@ mod tests {
     }
 
     //#[test]
-    fn test_part2() {
+    fn _test_part2() {
         let input = include_str!("../../input/input_18.txt");
 
         assert_eq!("1", solve(input.to_string(), Part2));
