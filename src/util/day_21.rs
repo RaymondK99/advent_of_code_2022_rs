@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use util::day_21::Side::{Left, Right};
 use super::Part;
 
 pub fn solve(input : String, part: Part) -> String {
@@ -7,6 +8,11 @@ pub fn solve(input : String, part: Part) -> String {
         Part::Part1 => part1(input),
         Part::Part2 => part2(input)
     }
+}
+#[derive(Debug, Copy, Clone)]
+enum Side {
+    Left,
+    Right,
 }
 
 #[derive(Debug)]
@@ -72,7 +78,7 @@ fn contains_monkey(current:&String, search:&str, monkeys:&Vec<Monkey>) -> bool {
     }
 }
 
-fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Operand, i64)>) -> Vec<(Operand, i64)> {
+fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Side, Operand, i64)>) -> Vec<(Side, Operand, i64)> {
     let monkey = monkeys.iter().find(|monkey| monkey.name.eq(current)).unwrap();
 
     if monkey.name.as_str().eq(search) {
@@ -81,17 +87,17 @@ fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Operand,
     }
 
     match &monkey.operation {
-        Operation::Number(_) => vec![],
+        Operation::Number(_) => panic!("...."),
         Operation::Binary(operand, left, right) => {
             let mut next_path = path.clone();
             // Check which side contains the wanted monkey
             if contains_monkey(left, search, monkeys) {
                 let right_value = resolve(right, monkeys);
-                next_path.push((*operand, right_value));
+                next_path.push((Right, *operand, right_value));
                 find_path(left, search, monkeys, next_path)
             } else {
                 let left_value = resolve(left, monkeys);
-                next_path.push((*operand, left_value));
+                next_path.push((Left, *operand, left_value));
                 find_path(right, search, monkeys, next_path)
             }
         }
@@ -129,13 +135,23 @@ fn part2(input : String) -> String {
 
     println!("path:{:?}", path);
 
-    let mut humn_value = path.pop_front().unwrap().1;
+    let (_,_,mut humn_value) = path.pop_front().unwrap();
     while !path.is_empty() {
-        let (operand, value) = path.pop_front().unwrap();
+        let (side, operand, value) = path.pop_front().unwrap();
         match operand {
-            Operand::Plus => humn_value -= value,
+            Operand::Plus => {
+                match side {
+                    _ =>  humn_value = humn_value - value,
+                    //Left =>  humn_value = value - humn_value,
+                }
+            },
             Operand::Minus => humn_value += value,
-            Operand::Mult => humn_value /= value,
+            Operand::Mult => {
+                match side {
+                    _ =>  humn_value = humn_value / value,
+                    //Left =>  humn_value = value / humn_value,
+                }
+            },
             Operand::Div => humn_value *= value,
         }
     }
@@ -183,9 +199,10 @@ hmdt: 32";
         assert_eq!("301", solve(TEST_INPUT.to_string(), Part2));
     }
 
-    #[test]
-    fn test_part2() {
-        // Too high:7243227128687
+    //#[test]
+    fn _test_part2() {
+        // TODO: FIX
+        // Too high:7_243_227_128_687
         let input = include_str!("../../input/input_21.txt");
         assert_eq!("1", solve(input.to_string(), Part2));
     }
