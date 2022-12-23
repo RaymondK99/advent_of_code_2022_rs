@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use super::Part;
 
 pub fn solve(input : String, part: Part) -> String {
@@ -80,6 +80,7 @@ impl Grid {
 
         while round < rounds {
             let mut proposed_moves = VecDeque::new();
+            let mut conflicting_moves = HashMap::new();
             for elf in self.elves.iter() {
                 // Should move
                 let any_adjacent = elf.adjacent_elves().iter().any(|adjacent_elf| self.elves.contains(adjacent_elf));
@@ -101,7 +102,14 @@ impl Grid {
 
                     let any_blocking_elf = elf.check_direction(dir).iter().any(|pos| self.elves.contains(pos));
                     if !any_blocking_elf {
-                        proposed_moves.push_back((elf.clone(), elf.next_move(dir)));
+                        let next_move = elf.next_move(dir);
+                        proposed_moves.push_back((elf.clone(),next_move.clone()));
+                        if let Some(cnt) = conflicting_moves.get_mut(&elf.next_move(dir)) {
+                            *cnt += 1;
+                        } else {
+                            conflicting_moves.insert(next_move, 1);
+                        }
+
                         break;
                     }
                 }
@@ -115,27 +123,8 @@ impl Grid {
                     // Perform moves
                     let (elf, next_move) = proposed_moves.pop_front().unwrap();
 
-                    let conflicting_moves = proposed_moves.iter()
-                        .filter(|(_, other_move)| next_move.eq(other_move))
-                        .copied()
-                        .collect::<Vec<_>>();
-
-                    // Check for conflicting moves
-                    if !conflicting_moves.is_empty() {
-                        // Conflicting move, clear other moves
-                        conflicting_moves.into_iter().for_each(|other_move| {
-                            for _ in 0..proposed_moves.len() {
-                                if proposed_moves.front().unwrap().eq(&other_move) {
-                                    proposed_moves.pop_front();
-                                }
-
-                                if proposed_moves.is_empty() {
-                                    break;
-                                }
-                                proposed_moves.rotate_right(1);
-                            }
-                        });
-
+                    if *conflicting_moves.get(&next_move).unwrap() > 1 {
+                        // Skip
                         continue;
                     } else {
                         // Perform move
@@ -230,10 +219,10 @@ mod tests {
         assert_eq!("20", solve(TEST_INPUT2.to_string(), Part2));
     }
 
-    //#[test]
-    fn _test_part2() {
+    #[test]
+    fn test_part2() {
         let input = include_str!("../../input/input_23.txt");
 
-        assert_eq!("1", solve(input.to_string(), Part2));
+        assert_eq!("918", solve(input.to_string(), Part2));
     }
 }
