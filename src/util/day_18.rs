@@ -1,3 +1,4 @@
+use std::collections::{HashSet, VecDeque};
 use super::Part;
 
 pub fn solve(input : String, part: Part) -> String {
@@ -8,7 +9,7 @@ pub fn solve(input : String, part: Part) -> String {
     }
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Hash, Copy, Clone)]
 struct Cube {
     x:i32,
     y:i32,
@@ -28,6 +29,17 @@ impl Cube {
     fn is_connected(&self, other:&Cube) -> bool {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y) + self.z.abs_diff(other.z)  == 1
     }
+
+    fn get_neighbors(&self) -> Vec<Cube> {
+        let mut neighbors = vec![];
+        neighbors.push(Cube::from(self.x-1, self.y, self.z));
+        neighbors.push(Cube::from(self.x+1, self.y, self.z));
+        neighbors.push(Cube::from(self.x, self.y-1, self.z));
+        neighbors.push(Cube::from(self.x, self.y+1, self.z));
+        neighbors.push(Cube::from(self.x, self.y, self.z+1));
+        neighbors.push(Cube::from(self.x, self.y, self.z-1));
+        neighbors
+    }
 }
 
 fn calculate_surface_area(cubes:&Vec<Cube>) -> i32 {
@@ -45,102 +57,64 @@ fn calculate_surface_area(cubes:&Vec<Cube>) -> i32 {
     exposed_area
 }
 
-fn is_in_row(n:i32, mut row:Vec<i32>) -> bool {
-    let mut is_within = false;
 
-    row.sort();
-    if row.is_empty() {
-        return false;
+fn calculate_outer_surface(droplet:HashSet<Cube>) -> usize {
+    let mut outer_formation = HashSet::new();
+
+    let min_x = droplet.iter().map(|p| p.x).min().unwrap() - 1 ;
+    let max_x = droplet.iter().map(|p| p.x).max().unwrap() + 1;
+
+    let min_y = droplet.iter().map(|p| p.y).min().unwrap() - 1;
+    let max_y = droplet.iter().map(|p| p.y).max().unwrap() + 1;
+
+    let min_z = droplet.iter().map(|p| p.z).min().unwrap() - 1;
+    let max_z = droplet.iter().map(|p| p.z).max().unwrap() + 2;
+    let first = Cube::from(min_x, min_y, min_z);
+
+    let mut queue = VecDeque::new();
+    queue.push_back(first);
+
+    while !queue.is_empty() {
+        let cube = queue.pop_front().unwrap();
+
+        if cube.x < min_x || cube.x > max_x || cube.y < min_y || cube.y > max_y || cube.z < min_z || cube.z > max_z {
+            continue;
+        }
+
+        if droplet.contains(&cube) || outer_formation.contains(&cube) {
+            continue;
+        }
+
+        // Add neighbours for eval
+        cube.get_neighbors().into_iter().for_each(|c| queue.push_back(c));
+
+        // Add to outer
+        outer_formation.insert(cube);
     }
 
-    if n <= *row.first().unwrap() || n >= *row.last().unwrap() {
-        return false;
-    } else {
-        for i in 0..row.len() - 2 {
-            if row[i] != row[i+1] + 1 {
-                is_within = !is_within;
-                if is_within && n > row[i] && n < row[i+1] {
-                    return true;
-                }
+    let mut connections = 0;
+    for c in outer_formation {
+        for d in droplet.iter() {
+            if c.is_connected(&d) {
+                connections += 1;
             }
         }
     }
 
-    false
-}
-fn is_cube_in_droplet(cube:&Cube, droplet:&Vec<Cube>) -> bool {
-
-    // Get row
-    let row = droplet.iter().filter(|p| cube.y == p.y && cube.z == p.z ).map(|p| p.x).collect::<Vec<_>>();
-    let column = droplet.iter().filter(|p| cube.x == p.x && cube.z == p.z).map(|p| p.y).collect::<Vec<_>>();
-    let z_row = droplet.iter().filter(|p| cube.y == p.y && cube.x == p.x).map(|p| p.z).collect::<Vec<_>>();
-
-    let within_row = is_in_row(cube.x, row);
-    let within_col = is_in_row(cube.y, column);
-    let within_z_row = is_in_row(cube.z, z_row);
-
-    within_row && within_col && within_z_row
+    connections
 }
 
 
 fn part1(input : String) -> String {
-    let points = input.lines().map(|line| Cube::new(line)).collect::<Vec<_>>();
+    let points = input.lines().map(|line| Cube::new(line)).collect();
     calculate_surface_area(&points).to_string()
 }
 
-
 fn part2(input : String) -> String {
-    let droplet = input.lines().map(|line| Cube::new(line)).collect::<Vec<_>>();
-    let surface_area = calculate_surface_area(&droplet);
-
-    let mut inner_space = vec![];
-    let min_x = droplet.iter().map(|p| p.x).min().unwrap();
-    let max_x = droplet.iter().map(|p| p.x).max().unwrap();
-
-    let min_y = droplet.iter().map(|p| p.y).min().unwrap();
-    let max_y = droplet.iter().map(|p| p.y).max().unwrap();
-
-    let min_z = droplet.iter().map(|p| p.z).min().unwrap();
-    let max_z = droplet.iter().map(|p| p.z).max().unwrap();
-
-
-
-    for x in min_x..=max_x {
-        for y in min_y..=max_y {
-            for z in min_z..=max_z {
-                let cube = Cube::from(x, y, z);
-
-                if !droplet.contains(&cube) {
-                    // Check if cube is within droplet
-                    if is_cube_in_droplet(&cube, &droplet) {
-                        //println!("Cube:{:?} is in droplet", cube);
-                        inner_space.push(cube);
-                    }
-                } else {
-                    //println!("Cube is in droplet:{:?}", cube);
-                }
-            }
-        }
-    }
-
-    let mut inner_area = 0;
-    for inner_cube in inner_space.iter() {
-        for cube_in_droplet in droplet.iter() {
-            if inner_cube.is_connected(cube_in_droplet) {
-                inner_area += 1;
-            }
-        }
-    }
-
-    let surface_area_inner_cube = calculate_surface_area(&inner_space);
-    println!("inner cube area={}", surface_area_inner_cube);
-
-    println!("inner area={}", inner_area);
-    println!("total area={}", surface_area);
-    println!("outer surface={}", surface_area - inner_area);
-
-    (surface_area - inner_area).to_string()
+    let droplet = input.lines().map(|line| Cube::new(line)).collect();
+    calculate_outer_surface(droplet).to_string()
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -171,23 +145,17 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = include_str!("../../input/input_18.txt");
-
         assert_eq!("4450", solve(input.to_string(), Part1));
     }
 
     #[test]
     fn test2() {
-        // to low
-        // 2530
-        // to high:
-        // 4220
-        assert_eq!("64", solve(TEST_INPUT.to_string(), Part2));
+        assert_eq!("58", solve(TEST_INPUT.to_string(), Part2));
     }
 
-    //#[test]
+    #[test]
     fn _test_part2() {
         let input = include_str!("../../input/input_18.txt");
-
-        assert_eq!("1", solve(input.to_string(), Part2));
+        assert_eq!("2564", solve(input.to_string(), Part2));
     }
 }
