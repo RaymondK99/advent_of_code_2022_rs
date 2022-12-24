@@ -93,12 +93,10 @@ fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Side, Op
             // Check which side contains the wanted monkey
             if contains_monkey(left, search, monkeys) {
                 let right_value = resolve(right, monkeys);
-                println!("({}:has humn {:?} {}:{})", left, operand, right, right_value);
                 next_path.push((Right, *operand, right_value));
                 find_path(left, search, monkeys, next_path)
             } else {
                 let left_value = resolve(left, monkeys);
-                println!("({}:{} {:?} {}:humn)", left, left_value, operand, right);
                 next_path.push((Left, *operand, left_value));
                 find_path(right, search, monkeys, next_path)
             }
@@ -135,8 +133,6 @@ fn part2(input : String) -> String {
     let monkeys = input.lines().map(|line| parse(line)).collect::<Vec<_>>();
     let mut path = find_path("root", "humn", &monkeys, vec![]).iter().copied().collect::<VecDeque<_>>();
 
-    println!("path:{:?}", path);
-
     let (_,_,mut humn_value) = path.pop_front().unwrap();
     while !path.is_empty() {
         let (side, operand, value) = path.pop_front().unwrap();
@@ -144,17 +140,25 @@ fn part2(input : String) -> String {
             Operand::Plus => {
                 match side {
                     _ =>  humn_value = humn_value - value,
-                    //Left =>  humn_value = value - humn_value,
                 }
             },
-            Operand::Minus => humn_value += value,
+            Operand::Minus => {
+                match side {
+                    Right =>  humn_value = humn_value + value,
+                    Left => humn_value =  value - humn_value,
+                }
+            },
             Operand::Mult => {
                 match side {
                     _ =>  humn_value = humn_value / value,
-                    //Left =>  humn_value = value / humn_value,
                 }
             },
-            Operand::Div => humn_value *= value,
+            Operand::Div => {
+                match side {
+                    Right => humn_value *= value,
+                    Left => humn_value = value / humn_value,
+                }
+            },
         }
     }
 
@@ -201,11 +205,9 @@ hmdt: 32";
         assert_eq!("301", solve(TEST_INPUT.to_string(), Part2));
     }
 
-   // #[test]
-    fn _test_part2() {
-        // TODO: FIX
-        // Too high:7_243_227_128_687
+    #[test]
+    fn test_part2() {
         let input = include_str!("../../input/input_21.txt");
-        assert_eq!("1", solve(input.to_string(), Part2));
+        assert_eq!("3560324848168", solve(input.to_string(), Part2));
     }
 }
