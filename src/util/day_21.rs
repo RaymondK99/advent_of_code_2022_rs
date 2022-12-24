@@ -93,10 +93,12 @@ fn find_path(current:&str, search:&str, monkeys:&Vec<Monkey>, path:Vec<(Side, Op
             // Check which side contains the wanted monkey
             if contains_monkey(left, search, monkeys) {
                 let right_value = resolve(right, monkeys);
+                println!("({}:has humn {:?} {}:{})", left, operand, right, right_value);
                 next_path.push((Right, *operand, right_value));
                 find_path(left, search, monkeys, next_path)
             } else {
                 let left_value = resolve(left, monkeys);
+                println!("({}:{} {:?} {}:humn)", left, left_value, operand, right);
                 next_path.push((Left, *operand, left_value));
                 find_path(right, search, monkeys, next_path)
             }
@@ -199,7 +201,7 @@ hmdt: 32";
         assert_eq!("301", solve(TEST_INPUT.to_string(), Part2));
     }
 
-    //#[test]
+   // #[test]
     fn _test_part2() {
         // TODO: FIX
         // Too high:7_243_227_128_687

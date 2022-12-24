@@ -19,46 +19,46 @@ enum Direction {
 
 
 #[derive(Hash, Eq, PartialEq, Debug, Copy, Clone)]
-struct Elf {
+struct Position {
     x:i32,
     y:i32,
 }
 
 struct Grid {
-    elves:HashSet<Elf>,
+    elves:HashSet<Position>,
 }
 
-impl Elf {
-    fn new(x:i32,y:i32) -> Elf {
-        Elf{x,y}
+impl Position {
+    fn new(x:i32,y:i32) -> Position {
+        Position {x,y}
     }
 
-    fn adjacent_elves(&self) -> [Elf;8] {
-        [Elf::new(self.x-1,self.y-1),
-            Elf::new(self.x,self.y-1),
-            Elf::new(self.x+1,self.y-1),
-            Elf::new(self.x-1,self.y+1),
-            Elf::new(self.x,self.y+1),
-            Elf::new(self.x+1,self.y+1),
-            Elf::new(self.x-1,self.y),
-            Elf::new(self.x+1,self.y)]
+    fn adjacent_positions(&self) -> [Position;8] {
+        [Position::new(self.x-1, self.y-1),
+            Position::new(self.x, self.y-1),
+            Position::new(self.x+1, self.y-1),
+            Position::new(self.x-1, self.y+1),
+            Position::new(self.x, self.y+1),
+            Position::new(self.x+1, self.y+1),
+            Position::new(self.x-1, self.y),
+            Position::new(self.x+1, self.y)]
     }
 
-    fn next_move(&self, dir:Direction) -> Elf {
+    fn next_move(&self, dir:Direction) -> Position {
         match dir {
-            Direction::North => Elf::new(self.x,self.y-1),
-            Direction::South => Elf::new(self.x,self.y+1),
-            Direction::West => Elf::new(self.x-1,self.y),
-            Direction::East => Elf::new(self.x+1,self.y),
+            Direction::North => Position::new(self.x, self.y-1),
+            Direction::South => Position::new(self.x, self.y+1),
+            Direction::West => Position::new(self.x-1, self.y),
+            Direction::East => Position::new(self.x+1, self.y),
         }
     }
 
-    fn check_direction(&self, dir:Direction) -> [Elf; 3] {
+    fn check_direction(&self, dir:Direction) -> [Position; 3] {
         match dir {
-            Direction::North => [Elf::new(self.x-1,self.y-1), Elf::new(self.x,self.y-1), Elf::new(self.x+1,self.y-1)],
-            Direction::South => [Elf::new(self.x-1,self.y+1), Elf::new(self.x,self.y+1), Elf::new(self.x+1,self.y+1)],
-            Direction::West =>  [Elf::new(self.x-1,self.y-1), Elf::new(self.x-1,self.y), Elf::new(self.x-1,self.y+1)],
-            Direction::East =>  [Elf::new(self.x+1,self.y-1), Elf::new(self.x+1,self.y), Elf::new(self.x+1,self.y+1)],
+            Direction::North => [Position::new(self.x-1, self.y-1), Position::new(self.x, self.y-1), Position::new(self.x+1, self.y-1)],
+            Direction::South => [Position::new(self.x-1, self.y+1), Position::new(self.x, self.y+1), Position::new(self.x+1, self.y+1)],
+            Direction::West =>  [Position::new(self.x-1, self.y-1), Position::new(self.x-1, self.y), Position::new(self.x-1, self.y+1)],
+            Direction::East =>  [Position::new(self.x+1, self.y-1), Position::new(self.x+1, self.y), Position::new(self.x+1, self.y+1)],
         }
     }
 }
@@ -70,7 +70,7 @@ impl Grid {
                 .map(move |(x,ch)| (x,y,ch)))
             .flatten()
             .filter(|(_,_,ch)| *ch == '#')
-            .map(|(x,y,_)| Elf::new(x as i32,y as i32))
+            .map(|(x,y,_)| Position::new(x as i32, y as i32))
             .collect();
         Grid{elves}
     }
@@ -83,7 +83,7 @@ impl Grid {
             let mut conflicting_moves = HashMap::new();
             for elf in self.elves.iter() {
                 // Should move
-                let any_adjacent = elf.adjacent_elves().iter().any(|adjacent_elf| self.elves.contains(adjacent_elf));
+                let any_adjacent = elf.adjacent_positions().iter().any(|adjacent_pos| self.elves.contains(adjacent_pos));
                 if !any_adjacent {
                     // No adjacent elves, skip move
                     continue;
