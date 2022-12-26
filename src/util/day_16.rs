@@ -1,217 +1,19 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::cmp::{Ordering, Reverse};
+use std::collections::{BinaryHeap, HashSet, VecDeque};
 use std::fmt::{Debug, Formatter};
 use super::Part;
 
 pub fn solve(input : String, part: Part) -> String {
-
     match part {
         Part::Part1 => part1(input),
         Part::Part2 => part2(input)
     }
 }
 
-struct State {
-    pos:String,
-    visited:Vec<String>,
-    flow_rate:u32,
-    volume:u32,
-    minute:u32,
-    done:bool,
-}
-
-impl State {
-    fn new(pos:&str, visited:Vec<String>, flow_rate:u32, volume:u32, minute:u32) -> State {
-        State{pos:pos.to_string(), visited, flow_rate, volume, minute, done:false}
-    }
-
-    fn from(other:&State) -> State {
-        State{pos:other.pos.to_string(),visited:other.visited.clone(), flow_rate:other.flow_rate, volume:other.volume,
-            minute:other.minute, done:other.done}
-    }
-
-    fn fast_forward(&mut self) {
-        loop {
-
-            if self.minute < 30 {
-                // Add flow
-                self.volume += self.flow_rate;
-                self.minute += 1;
-            } else {
-                break;
-            }
-        }
-    }
-}
-
-impl Debug for State {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "State[pos:{}, minute:{}, visited:{:?}, rate:{}, volume:{}]",self.pos, self.minute, self.visited, self.flow_rate, self.volume)
-    }
-}
-
-struct Graph {
-    nodes:Vec<Node>,
-    max_flow:u32,
-}
-
-impl Graph {
-    fn parse(input:String) -> Graph {
-        let nodes = input.lines().map(|line| Node::parse(line)).collect::<Vec<_>>();
-        let max_flow = nodes.iter().map(|node| node.rate).sum::<u32>();
-        Graph{nodes, max_flow}
-    }
-
-    fn get_node(&self, node_name:&str) -> &Node {
-        self.nodes.iter().find(|node| node.name.as_str().eq(node_name)).unwrap()
-    }
-
-    fn get_next_states(&self, state:&State)  -> Vec<State> {
-        let destinations = self.bfs(state.pos.as_str(), &state.visited);
-        //println!("dest:{:?}", destinations);
-        let mut next_states = vec![];
-
-        if destinations.is_empty() {
-            let mut next_state = State::from(state);
-            //println!("--> no destinations:{:?}", state);
-            next_state.done = true;
-            next_states.push(next_state);
-        } else {
-            for (dist, dest_node) in destinations {
-                let next_volume = state.flow_rate * (dist + 1) + state.volume;
-                let next_flow_rate = state.flow_rate + dest_node.rate;
-                let next_minute = state.minute + dist + 1; // 1 for opening
-                let mut next_visited = state.visited.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-                next_visited.push(dest_node.name.clone());
-
-                if next_minute < 30 {
-                    let next_state = State::new(dest_node.name.as_str(), next_visited, next_flow_rate, next_volume, next_minute);
-                    next_states.push(next_state);
-                } else {
-                    let mut next_state = State::from(state);
-                    //println!("--> no destinations:{:?}", state);
-                    next_state.done = true;
-                    next_states.push(next_state);
-                }
-            }
-        }
-
-        next_states
-    }
-
-    fn bfs(&self, origin_node_node:&str, opened_valves:&Vec<String>) -> Vec<(u32, &Node)> {
-        let origin_node = self.get_node(origin_node_node);
-        let mut visited = HashSet::new();
-        let mut queue = VecDeque::new();
-        let mut result = vec![];
-
-        // Insert as visited
-        visited.insert(&origin_node.name);
-        queue.push_back((0, origin_node));
-
-        while !queue.is_empty() {
-            let (current_dist, node) = queue.pop_front().unwrap();
-
-            if !opened_valves.contains(&node.name) && origin_node.ne(node) && node.rate > 0 {
-                // Found possible destination
-                result.push((current_dist, node));
-            }
-
-            // Explore edges
-            for adjacent_name in node.neighbours.iter() {
-                let adjacent_node = self.get_node(adjacent_name.as_str());
-                if !visited.contains(&adjacent_name) {
-                    // Unexplored node
-                    visited.insert(adjacent_name);
-                    queue.push_back((current_dist + 1, adjacent_node));
-                }
-            }
-        }
-
-        result
-    }
-
-
-    fn solve(&mut self) -> u32 {
-        let mut results = vec![];
-        let start_state = State::new("AA", vec![], 0, 0, 0);
-        let mut prev_result = HashMap::new();
-        let mut queue = VecDeque::new();
-        queue.push_back(start_state);
-
-        while !queue.is_empty() {
-            let mut state = queue.pop_front().unwrap();
-
-            //println!("Process state:{:?}", state);
-
-            if state.flow_rate == self.max_flow || state.done {
-                state.fast_forward();
-                let minute = state.minute;
-
-                if let Some(prev_vol) = prev_result.get_mut(&minute) {
-                    if *prev_vol >= state.volume {
-                        // Already found solution
-                    } else {
-
-                        // Done
-                        //println!("---> {:?}", state);
-
-                        state.fast_forward();
-
-                        *prev_vol = state.volume;
-
-                        println!("---> New better solution at {} -> {}", minute, state.volume);
-                        results.push(state);
-                    }
-                } else {
-                    println!(">>>>> New better solution at {} -> {}", minute, state.volume);
-                    prev_result.insert(minute, state.volume);
-                    results.push(state);
-                }
-                continue;
-            } else {
-                // Check if we already have solution
-                if let Some(prev_vol) = prev_result.get_mut(&state.minute) {
-                    if *prev_vol > state.volume {
-                        // No point evaluating this...
-                        continue;
-                    }
-                }
-            }
-
-            // Check options for state
-            let destination_states = self.get_next_states(&state);
-
-            for next_state in destination_states {
-                queue.push_back(next_state);
-            }
-
-        }
-
-        results.sort_by(|a,b| a.volume.cmp(&b.volume));
-        results.reverse();
-        println!("Best:{:?}", results.first().unwrap());
-        results.first().unwrap().volume
-    }
-
-}
-
-impl Debug for Graph {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut str = String::new();
-
-        self.nodes.iter().for_each(|node| {
-            let s = format!("{:?}, ", node);
-            str.push_str(s.as_str());
-        });
-
-        write!(f,"{}", str)
-    }
-}
-
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Hash)]
 struct Node {
     name:String,
-    rate:u32,
+    rate:i32,
     neighbours:Vec<String>
 }
 
@@ -228,7 +30,7 @@ impl Node {
             .collect::<Vec<_>>();
 
         let name = columns[1].to_string();
-        let rate = columns[5].parse::<u32>().unwrap();
+        let rate = columns[5].parse::<i32>().unwrap();
         let mut neighbours = vec![];
         for n in 10..columns.len() {
             neighbours.push(columns[n].to_string());
@@ -239,12 +41,215 @@ impl Node {
 
 }
 
+#[derive(Eq, PartialEq, Hash, Debug, Clone)]
+struct State {
+    pos:String,
+    pos_helper:String,
+    opened:Vec<String>,
+    remaining:Vec<String>,
+    volume:i32,
+    flow:i32,
+    turn_left:i32,
+    max_theoretical:i32,
+}
+
+impl PartialOrd<Self> for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        return Some(self.cmp(&other))
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let order = self.turn_left.cmp(&other.turn_left);
+        if order.eq(&Ordering::Equal) {
+            return other.max_theoretical.cmp(&self.max_theoretical);
+        } else {
+            order
+        }
+    }
+}
+
+impl State {
+    fn first_state(graph:&Graph, node:&Node, no_turns:i32) -> State {
+        let opened:Vec<String> = vec![];
+        let pos = node.name.clone();
+        let pos_helper = node.name.clone();
+        let mut remaining_nodes = graph.nodes.iter().filter(|n| n.rate > 0).collect::<Vec<_>>();
+        let flow = 0;
+        let volume = 0;
+        remaining_nodes.sort_by(|a,b| b.rate.cmp(&a.rate));
+        let remaining = remaining_nodes.iter().map(|n| n.name.clone()).collect();
+        let mut state = State{pos, pos_helper, opened, remaining, turn_left:no_turns, volume, flow, max_theoretical:0};
+        state.max_theoretical = state.calc_theoretical_max_volume(graph);
+        state
+    }
+
+    fn next_state(&self, graph:&Graph, next_node:&Node, next_node_helper:&Node, distance:i32) -> State {
+        let pos = next_node.name.clone();
+        let pos_helper = next_node_helper.name.clone();
+        let mut opened:Vec<String> = self.opened.clone();
+        let remaining = self.remaining.iter().filter(|&n|pos_helper.ne(n) && pos.ne(n)).map(|s|s.clone()).collect();
+        let flow = self.flow + next_node.rate;
+        let volume = self.volume + distance * self.flow;
+        let turn_left = self.turn_left - distance;
+
+        opened.push(next_node.name.clone());
+
+        let mut next_state = State{pos, pos_helper, opened, remaining, flow, volume, turn_left, max_theoretical:0};
+        next_state.max_theoretical = next_state.calc_theoretical_max_volume(graph);
+        next_state
+    }
+
+    fn calc_theoretical_max_volume(&self, graph:&Graph) -> i32 {
+        let turns_left =self.turn_left;
+        let mut max_volume = self.volume;
+        let mut current_flow = self.flow;
+        let mut remaining_index = 0;
+        for t in 1..=turns_left {
+            max_volume += current_flow;
+            if t % 2 == 0 {
+                if remaining_index != self.remaining.len() {
+                    let node = graph.get_node(self.remaining[remaining_index].as_str());
+                    current_flow += node.rate;
+                    remaining_index += 1;
+                }
+            }
+
+        }
+        max_volume
+    }
+
+    fn calc_end_flow(&self) -> i32 {
+        let mut total_volume = self.volume;
+        for _ in 1..=self.turn_left {
+            total_volume += self.flow;
+        }
+        total_volume
+    }
+
+    fn is_done(&self) -> bool {
+        self.remaining.is_empty()
+    }
+}
+
+struct Graph {
+    nodes:Vec<Node>,
+}
+
+impl Graph {
+    fn parse(input: String) -> Graph {
+        let nodes = input.lines().map(|line| Node::parse(line)).collect::<Vec<_>>();
+        Graph { nodes }
+    }
+
+    fn get_node(&self, node_name: &str) -> &Node {
+        self.nodes.iter().find(|node| node.name.as_str().eq(node_name)).unwrap()
+    }
+
+    fn bfs(&self, state:&State) -> Vec<(i32, String)> {
+        let opened_valves = &state.opened;
+        let origin_node = self.get_node(state.pos.as_str());
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+        let mut result = vec![];
+
+        // Insert origin node as visited
+        visited.insert(origin_node);
+        queue.push_back((0, origin_node));
+
+        while !queue.is_empty() {
+            let (distance, current_node) = queue.pop_front().unwrap();
+
+            // Is this a node we can open?
+            if !opened_valves.contains(&current_node.name) && current_node.ne(origin_node) && current_node.rate > 0 {
+                // Add an extra distance since it costs to open the valve
+                let total_cost = distance + 1;
+                if total_cost > state.turn_left {
+                    continue;
+                }
+                result.push((distance + 1, current_node.name.clone()));
+            }
+
+            // Check neighbours
+            current_node.neighbours.iter()
+                .map(|name| self.nodes.iter().find(|node| node.name.eq(name)).unwrap())
+                .for_each(|next_node |{
+                    // insert as visited
+                    if !visited.contains(&next_node) {
+                        visited.insert(next_node);
+                        // add to queue
+                        queue.push_back((distance + 1, next_node));
+                    }
+                })
+        }
+
+        result
+    }
+
+    fn solve(&self, no_turns:i32) -> i32 {
+        let start_node = self.get_node("AA");
+        let start_state = State::first_state(self, start_node, no_turns);
+        let mut queue = BinaryHeap::new();
+        let mut results = vec![];
+        let mut iterations = 0;
+
+        // Add first state
+        queue.push(Reverse(start_state));
+
+        while !queue.is_empty() {
+            let current_state = queue.pop().unwrap().0;
+            iterations += 1;
+
+            if current_state.is_done() {
+                results.push((current_state.calc_end_flow(), current_state));
+                // Order by best result
+                results.sort_by(|(end_flow_a, _),(end_flow_b, _)| end_flow_b.cmp(end_flow_a));
+                continue;
+            } else if !results.is_empty() && results.first().unwrap().0 >= current_state.max_theoretical {
+                // Already evaluated better option
+                continue;
+            } else {
+
+                let next_nodes = self.bfs(&current_state);
+
+                if next_nodes.is_empty() {
+                    results.push((current_state.calc_end_flow(), current_state));
+                    // Order by best result
+                    results.sort_by(|(end_flow_a, _),(end_flow_b, _)| end_flow_b.cmp(end_flow_a));
+                    continue;
+                }
+
+                // Perform BFS and find next steps
+                for (next_dist, next_node_name) in next_nodes {
+                    let next_node = self.get_node(next_node_name.as_str());
+                    let next_state = current_state.next_state(self, next_node, next_node, next_dist);
+                    queue.push(Reverse( next_state));
+                }
+            }
+        }
+        println!("iterations:{}", iterations);
+        results.first().unwrap().0
+    }
+}
+
+impl Debug for Graph {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut str = String::new();
+
+        self.nodes.iter().for_each(|node| {
+            let s = format!("{:?}, ", node);
+            str.push_str(s.as_str());
+        });
+
+        write!(f,"{}", str)
+    }
+}
+
 fn part1(input : String) -> String {
-
-    let mut graph = Graph::parse(input);
-    //println!("{:?}", graph);
-
-    graph.solve().to_string()
+    let graph = Graph::parse(input);
+    let results = graph.solve(30);
+    results.to_string()
 }
 
 fn part2(_input : String) -> String {
@@ -274,9 +279,8 @@ Valve JJ has flow rate=21; tunnel leads to valve II";
     }
 
     #[test]
-    fn _test_part1() {
+    fn test_part1() {
         let input = include_str!("../../input/input_16.txt");
-
         assert_eq!("1775", solve(input.to_string(), Part1));
     }
 
@@ -288,7 +292,6 @@ Valve JJ has flow rate=21; tunnel leads to valve II";
     #[test]
     fn test_part2() {
         let input = include_str!("../../input/input_16.txt");
-
         assert_eq!("1", solve(input.to_string(), Part2));
     }
 }
